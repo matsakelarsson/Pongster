@@ -9,7 +9,7 @@ class Pongster:
         self.menuElements = []
         self._initMenu()
         self.balls = []
-        self.balls.append(Ball())
+        self.addRandomBall()
         self.paddles = []
         self.paddlesai = [False, False]
         self.screenDrawn = None
@@ -129,6 +129,7 @@ class Pongster:
                 if bounceX:
                     if math.fabs(p.getCenter().getY()- y) > (p.getP2().getY() - p.getP1().getY())/2:
                         self.mfcount += 1
+                        self.updateText()
                         if y > p.getCenter().getY():
                             ball.yv += 3
                         else:
@@ -142,27 +143,25 @@ class Pongster:
                 bounceX = True
                 self.score[0] += 1
                 self.updateText()
-                print "Player 2 is n00b"
+                ball.undraw()
+                self.balls.remove(ball)
             elif x + xv <= 0 + r:
                 goal = True
                 bounceX = True
                 self.score[1] += 1
                 self.updateText()
-                print "Player 1 is n00b"
+                ball.undraw()
+                self.balls.remove(ball)
         if not bounceY:
             if y + yv >= height - r:
                 dy = height-r-y
-                if math.fabs(ball.yv) < 100:
-                    ball.yv = ball.yv*1.01
                 ball.yv = -ball.yv
             elif y + yv <= 0 + r:
                 dy = r-y
-                if math.fabs(ball.yv) < 100:
-                    ball.yv = ball.yv*1.01
                 ball.yv = -ball.yv
         if bounceX:
             if math.fabs(ball.xv) < 100:
-                ball.xv = ball.xv*1.01
+                ball.xv = ball.xv*1.05
             ball.xv = -ball.xv
         restx = xv-dx
         resty = yv-dy
@@ -171,8 +170,20 @@ class Pongster:
             if restx != 0 and resty != 0:
                 self._moveBall(ball, -restx, -resty)
         else:
-            ball.reset(self.w)
-            
+            if len(self.balls) == 0:
+                self.reset()
+
+    def reset(self):
+        for ball in self.balls:
+            self.balls.remove(ball)
+        self.addRandomBall()
+        self.balls[0].draw(self.w)
+        for paddle in self.paddles:
+            dy = self.w.getHeight()/2 - paddle.getSize().getCenter().getY()
+            paddle.movePaddle(dy)
+        time.sleep(1)
+        self.w.getKey()
+    
     def updateText(self):
         self.mfcountText.setText("m'otherfucker: " + str(self.mfcount))
         self.scoreText.setText(str(self.score[0]) + " - " + str(self.score[1]))
@@ -180,6 +191,15 @@ class Pongster:
     def addBall(self, B):
         self.balls.append(B)
 
+    def addRandomBall(self):
+        xv = random.uniform(1, 2)
+        yv = random.uniform(1, 2)
+        
+        if random.randint(0, 1) == 1:
+            xv = -xv
+        if random.randint(0, 1) == 1:
+            yv = -yv
+        self.addBall(Ball(Point(self.w.getWidth()/2, self.w.getHeight()/2), xv, yv))
     def movePaddle(self, paddleN, y):
         
         paddle = self.paddles[paddleN]
@@ -191,11 +211,11 @@ class Pongster:
             paddle.movePaddle(y)
 
 class Paddle:
-    def __init__(self, x, size, w):
+    def __init__(self, x, size, w, color = "Black"):
         if size > w.getHeight():
             size = w.getHeight()
         self.paddle = Rectangle(Point(x-10, w.getHeight()/2-size/2), Point(x+10, w.getHeight()/2+size/2))
-
+        self.paddle.setFill(color)
     def draw(self, w):
         self.paddle.draw(w)
 
@@ -209,15 +229,16 @@ class Paddle:
         return self.paddle
 
 class Ball:
-    def __init__(self, p = Point(150, 250), xv = -2, yv = 0, r = 15):
+    def __init__(self, p, xv, yv, r = 15, color = "Black"):
         self.c = Circle(p , r)
+        #self.c.setFill(color)
         self.xv = xv
         self.yv = yv
     def reset(self, w):
-        self._moveBall(w.getWidth()/2, w.getHeight()/2)
+        self.moveBall(w.getWidth()/2, w.getHeight()/2)
         self.xv = random.randint(-10, 10)
         self.yv = random.randint(-10, 10)
-    def _moveBall(self, x, y):
+    def moveBall(self, x, y):
         c = self.c.getCenter()
         dx = x-c.getX()
         dy = y-c.getY()
@@ -227,23 +248,23 @@ class Ball:
 
     def undraw(self):
         self.c.undraw()
+        
     
 
     
 def main():
     w = GraphWin("Pongster", 600,500)
+    #w.setBackground("White")
     P = Pongster(w)
     P.drawGame()
     keyUp1 = "w"
     keyDown1 = "s"
     keyUp2 = "Up"
     keyDown2 = "Down"
-    snooze = 0.01
     w.getMouse()
     while True:
         #P.handleClick(w.getMouse())
-        time.sleep(snooze)
-        #w.getMouse()
+        time.sleep(0.01)
         P.move()
         key = w.checkKey()
         if key != "":
@@ -257,12 +278,6 @@ def main():
                 P.movePaddle(1, 50)
             elif key == "Escape":
                 break
-            elif key == "KP_Add":
-                snooze += 0.01
-            elif key == "KP_Subtract":
-                snooze -= 0.01
-                if snooze <= 0:
-                    snooze = 0.005
         
     w.close()
     
