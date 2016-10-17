@@ -1,7 +1,7 @@
 from graphics import *
 import random
 import math
-#from button import *
+from button import *
 
 class Pongster:
     def __init__(self, w):
@@ -9,29 +9,34 @@ class Pongster:
         self.menuElements = []
         self._initMenu()
         self.balls = []
-        self.addRandomBall()
         self.paddles = []
         self.paddlesai = [False, False]
         self.screenDrawn = None
         self.score = [0, 0]
         self.scoreText = Text(Point(w.getWidth()/2, w.getHeight()/8), "0 - 0")
         self.mfcount = 0
-        self.mfcountText = Text(Point(w.getWidth()/2, w.getHeight()/8*7), "m'otherfucker: 0")
+        self.mfcountText = Text(Point(w.getWidth()/2, w.getHeight()/8*7), "???: 0")
         self.paddles.append(Paddle(w.getWidth()/8, 100, w))
         self.paddles.append(Paddle(w.getWidth()/8*7, 100, w))
+
+    def getScreen(self):
+        return self.screenDrawn
     
     def drawMenu(self):
         if self.screenDrawn != "Menu":
             self._undrawScreen()
             for element in self.menuElements:
-                element.draw(self.w)
+                element.draw()
             self.screenDrawn = "Menu"
             
     def drawGame(self):
         if self.screenDrawn != "Game":
+            self.w.checkKey()
+            self.score = [0, 0]
+            self.mfcount = 0
+            self.updateText()
             self._undrawScreen()
-            for ball in self.balls:
-                ball.draw(self.w)
+            self.reset()
             for paddle in self.paddles:
                 paddle.draw(self.w)
             self.scoreText.draw(self.w)
@@ -48,24 +53,28 @@ class Pongster:
                 ball.undraw()
             for paddle in self.paddles:
                 paddle.undraw()
+            self.scoreText.undraw()
+            self.mfcountText.undraw()
             self.screenDrawn = None
         #elif self.screenDrawn == "Settings":
             
     def _initMenu(self):
-        self.menuElements.append(Rectangle(Point(100, 100), Point(200, 200)))
-        self.menuElements.append(Text(Point(150, 150), "Play!"))
-        self.menuElements.append(Rectangle(Point(100, 250), Point(200, 350)))
-        self.menuElements.append(Text(Point(150, 300), "Settings!"))
-        self.menuElements.append(Rectangle(Point(100, 400), Point(200, 500)))
-        self.menuElements.append(Text(Point(150, 450), "Quit!"))
+        self.menuElements.append(Button(self.w, Point(100, 100), Point(300, 200), "Play"))
+        #self.menuElements.append(Button(self.w, Point(100, 200), Point(300, 300), "Settings"))
+        self.menuElements.append(Button(self.w, Point(100, 300), Point(300, 400), "Exit"))
 
     def handleClick(self, p):
-        '''
-        for i in range(3):
-            if p.getY() >= 100+150*i and p.getY() <= 200+150*i and p.getX() >= 100 and p.getX() <= 200:
-                if i == 0:
-                    self.drawGame()
-        '''
+        i = None
+        for button in self.menuElements:
+            s = button.handleClick(p)
+            if s != None:
+                i = s
+        if i == "Play":
+            self.drawGame()
+        elif i == "Exit":
+            self.screenDrawn = "Exit"
+            
+                
         
     def move(self):
         for ball in self.balls:
@@ -161,7 +170,7 @@ class Pongster:
                 ball.yv = -ball.yv
         if bounceX:
             if math.fabs(ball.xv) < 100:
-                ball.xv = ball.xv*1.05
+                ball.xv = ball.xv*1.1
             ball.xv = -ball.xv
         restx = xv-dx
         resty = yv-dy
@@ -172,6 +181,8 @@ class Pongster:
         else:
             if len(self.balls) == 0:
                 self.reset()
+                time.sleep(1)
+                self.w.getKey()
 
     def reset(self):
         for ball in self.balls:
@@ -181,18 +192,29 @@ class Pongster:
         for paddle in self.paddles:
             dy = self.w.getHeight()/2 - paddle.getSize().getCenter().getY()
             paddle.movePaddle(dy)
-        time.sleep(1)
-        self.w.getKey()
+        
     
     def updateText(self):
-        self.mfcountText.setText("m'otherfucker: " + str(self.mfcount))
-        self.scoreText.setText(str(self.score[0]) + " - " + str(self.score[1]))
+        self.mfcountText.setText("???: " + str(self.mfcount))
+        if self.score == [9, 11]:
+            self.scoreText.setText("Iluminati confirmed 4Head")
+        elif self.score == [7, 11]:
+            self.scoreText.setText("French hotdog?")
+        elif self.score == [24, 7]:
+            self.scoreText.setText("All day m'otherfucker")
+        elif self.score == [6, 6] and self.mfcount == 6:
+            self.scoreText.setText("I AM")
+            self.mfcountText.setText("THE DEVIL")
+        elif self.score == [4, 20]:
+            self.scoreText.setText("")
+        else:
+            self.scoreText.setText(str(self.score[0]) + " - " + str(self.score[1]))
     
     def addBall(self, B):
         self.balls.append(B)
 
     def addRandomBall(self):
-        xv = random.uniform(1, 2)
+        xv = random.uniform(2, 3)
         yv = random.uniform(1, 2)
         
         if random.randint(0, 1) == 1:
@@ -229,9 +251,9 @@ class Paddle:
         return self.paddle
 
 class Ball:
-    def __init__(self, p, xv, yv, r = 15, color = "Black"):
+    def __init__(self, p, xv, yv, r = 15, color = "White"):
         self.c = Circle(p , r)
-        #self.c.setFill(color)
+        self.c.setFill(color)
         self.xv = xv
         self.yv = yv
     def reset(self, w):
@@ -254,36 +276,35 @@ class Ball:
     
 def main():
     w = GraphWin("Pongster", 600,500)
-    #w.setBackground("White")
+    w.setBackground("Green")
     P = Pongster(w)
-    P.drawGame()
+    P.drawMenu()
     keyUp1 = "w"
     keyDown1 = "s"
     keyUp2 = "Up"
     keyDown2 = "Down"
-    w.getMouse()
-    while True:
-        #P.handleClick(w.getMouse())
-        time.sleep(0.01)
-        P.move()
-        key = w.checkKey()
-        if key != "":
-            if key == keyUp1:
-                P.movePaddle(0, -50)
-            elif key == keyDown1:
-                P.movePaddle(0, 50)
-            if key == keyUp2:
-                P.movePaddle(1, -50)
-            elif key == keyDown2:
-                P.movePaddle(1, 50)
-            elif key == "Escape":
-                break
+    while P.getScreen() != "Exit":
+        if P.getScreen() == "Menu":
+            P.handleClick(w.getMouse())
+        elif P.getScreen() == "Game":
+            time.sleep(0.01)
+            P.move()
+            key = w.checkKey()
+            if key != "":
+                if key == keyUp1:
+                    P.movePaddle(0, -50)
+                elif key == keyDown1:
+                    P.movePaddle(0, 50)
+                if key == keyUp2:
+                    P.movePaddle(1, -50)
+                elif key == keyDown2:
+                    P.movePaddle(1, 50)
+                elif key == "Escape":
+                    P.drawMenu()
         
     w.close()
     
 if __name__ == "__main__":
     main()
 
-#MENU?
 #SETTINGS?
-#SICKER GREPHIX
